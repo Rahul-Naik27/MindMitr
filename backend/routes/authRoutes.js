@@ -1,4 +1,3 @@
-// routes/authRoutes.js
 const express = require('express');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
@@ -7,7 +6,6 @@ const { createUser, getUserByEmail } = require('../models/userModel');
 const router = express.Router();
 const SECRET = process.env.JWT_SECRET || 'daily_dost_secret';
 
-// Register
 router.post('/register', async (req, res) => {
     const { name, email, password, role } = req.body;
     if (!name || !email || !password) return res.status(400).json({ message: 'All fields required' });
@@ -19,7 +17,6 @@ router.post('/register', async (req, res) => {
         const hashed = await bcrypt.hash(password, 10);
         const userId = await createUser(name, email, hashed, role === 'admin' ? 'admin' : 'user');
 
-        // return token (optional)
         const token = jwt.sign({ id: userId, email, role: role === 'admin' ? 'admin' : 'user' }, SECRET, { expiresIn: '7d' });
         res.status(201).json({ message: 'User created', userId, token });
     } catch (err) {
@@ -28,7 +25,6 @@ router.post('/register', async (req, res) => {
     }
 });
 
-// Login
 router.post('/login', async (req, res) => {
     const { email, password } = req.body;
     if (!email || !password) return res.status(400).json({ message: 'Provide email and password' });

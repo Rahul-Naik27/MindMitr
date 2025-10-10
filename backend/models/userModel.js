@@ -1,4 +1,3 @@
-// models/userModel.js
 const pool = require('../config/db');
 
 async function createUser(name, email, hashedPassword, role = 'user') {

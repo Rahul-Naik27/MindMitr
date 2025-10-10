@@ -1,14 +1,13 @@
-// config/db.js
 const mysql = require('mysql2/promise');
 require('dotenv').config();
 
 const pool = mysql.createPool({
   host: process.env.DB_HOST || 'localhost',
   user: process.env.DB_USER || 'root',
-  password: process.env.DB_PASS || '',
+  password: process.env.DB_PASS || 'Lipika@210605',
   database: process.env.DB_NAME || 'dailydost',
   waitForConnections: true,
-  connectionLimit: 5, // IMPORTANT: max 5 simultaneous connections
+  connectionLimit: 5,
   queueLimit: 0
 });
 
