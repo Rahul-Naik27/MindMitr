@@ -325,7 +325,7 @@ function LandingPage() {
                             e.currentTarget.style.boxShadow = "0 6px 20px rgba(107, 68, 35, 0.3)";
                         }}
                     >
-                        Start Free Today
+                        Start Now
                     </button>
                 </div>
             </section>

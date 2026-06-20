@@ -76,56 +76,30 @@ const HabitTrackerDashboard = () => {
         }
         setMonthDates(monthArray);
     };
+const fetchHabits = useCallback(async () => {
+    try {
+        setLoading(true);
 
-    const fetchHabits = useCallback(async () => {
-        try {
-            setLoading(true);
-            const data = await apiRequest('/habits', 'GET', null, token);
+        const data = await apiRequest('/habits', 'GET', null, token);
+        const habits = data.habits || [];
 
-            const habits = data.habits || [];
+        // ✅ Use backend completion percentage for goal progress
+        const habitsWithProgress = habits.map(habit => ({
+            ...habit,
+            goalProgress: habit.completion_pct ?? 0, // use completion percentage from backend
+        }));
 
-            const habitsWithProgress = habits.map(habit => {
-                let goalProgress = 0;
+        setHabits(habitsWithProgress);
+    } catch (error) {
+        console.error('Failed to fetch habits:', error);
+        showNotification('Failed to load habits', 'error');
+        setHabits([]);
+    } finally {
+        setLoading(false);
+    }
+}, [token]);
 
-                if (habit.start_date && habit.end_date) {
-                    const startParts = habit.start_date.split('-');
-                    const endParts = habit.end_date.split('-');
-                    
-                    const start = new Date(parseInt(startParts[0]), parseInt(startParts[1]) - 1, parseInt(startParts[2]));
-                    const end = new Date(parseInt(endParts[0]), parseInt(endParts[1]) - 1, parseInt(endParts[2]));
-                    const today = new Date();
-                    
-                    today.setHours(0, 0, 0, 0);
 
-                    const totalDays = Math.round((end - start) / (1000 * 60 * 60 * 24)) + 1;
-
-                    let elapsedDays = 0;
-                    if (today >= start) {
-                        elapsedDays = Math.round((today - start) / (1000 * 60 * 60 * 24)) + 1;
-                        elapsedDays = Math.min(elapsedDays, totalDays);
-                    }
-
-                    if (totalDays > 0) {
-                        goalProgress = Math.round((elapsedDays / totalDays) * 100);
-                        goalProgress = Math.max(0, Math.min(100, goalProgress));
-                    }
-                }
-
-                return {
-                    ...habit,
-                    goalProgress,
-                };
-            });
-
-            setHabits(habitsWithProgress);
-        } catch (error) {
-            console.error('Failed to fetch habits:', error);
-            showNotification('Failed to load habits', 'error');
-            setHabits([]);
-        } finally {
-            setLoading(false);
-        }
-    }, [token]);
 
     const fetchQuote = async () => {
         try {
