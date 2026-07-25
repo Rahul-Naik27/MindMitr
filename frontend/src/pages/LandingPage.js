@@ -4,7 +4,6 @@ import { useNavigate } from "react-router-dom";
 function LandingPage() {
     const navigate = useNavigate();
     const [currentQuote, setCurrentQuote] = useState(0);
-    const [scrollY, setScrollY] = useState(0);
 
     const quotes = [
         "Excellence is not an act, but a habit",
@@ -18,13 +17,7 @@ function LandingPage() {
             setCurrentQuote((prev) => (prev + 1) % quotes.length);
         }, 4000);
         return () => clearInterval(interval);
-    }, []);
-
-    useEffect(() => {
-        const handleScroll = () => setScrollY(window.scrollY);
-        window.addEventListener('scroll', handleScroll);
-        return () => window.removeEventListener('scroll', handleScroll);
-    }, []);
+    }, [quotes.length]);
 
     return (
         <div style={styles.container}>

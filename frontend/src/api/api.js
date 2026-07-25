@@ -1,5 +1,7 @@
 export async function apiRequest(endpoint, options = {}) {
-  const baseUrl = process.env.REACT_APP_API_URL || "http://localhost:5000";
+  const rawBaseUrl = process.env.REACT_APP_API_URL || "http://localhost:5000";
+  const baseUrl = rawBaseUrl.replace(/\/$/, "");
+  const cleanEndpoint = endpoint.startsWith("/") ? endpoint : `/${endpoint}`;
   const token = localStorage.getItem("token");
 
   const headers = {
@@ -9,7 +11,7 @@ export async function apiRequest(endpoint, options = {}) {
   };
 
   try {
-    const res = await fetch(`${baseUrl}${endpoint}`, {
+    const res = await fetch(`${baseUrl}${cleanEndpoint}`, {
       method: options.method || "GET",
       headers,
       body: options.body ? JSON.stringify(options.body) : undefined,

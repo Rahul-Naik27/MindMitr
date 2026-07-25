@@ -9,13 +9,15 @@ async function createHabit(userId, title, description, frequency, goal_duration,
     }
 
     const startDateStr = typeof start_date === 'string'
-      ? start_date
-      : start_date.toISOString().slice(0, 10);
+      ? start_date.slice(0, 10)
+      : String(start_date).slice(0, 10);
 
-    const startDateObj = new Date(startDateStr + 'T00:00:00');
-    const endDateObj = new Date(startDateObj);
-    endDateObj.setDate(startDateObj.getDate() + duration - 1);
-    const end_date = endDateObj.toISOString().slice(0, 10);
+    const [y, m, d] = startDateStr.split('-').map(Number);
+    const endDateObj = new Date(y, m - 1, d + duration - 1);
+    const endYear = endDateObj.getFullYear();
+    const endMonth = String(endDateObj.getMonth() + 1).padStart(2, '0');
+    const endDay = String(endDateObj.getDate()).padStart(2, '0');
+    const end_date = `${endYear}-${endMonth}-${endDay}`;
 
     console.log('Creating habit with:', {
       duration,
@@ -53,11 +55,17 @@ async function updateHabit(habitId, userId, title, description, frequency, goal_
 
     if (habits.length === 0) return 0;
 
-    const startDateStr = habits[0].start_date;
-    const startDateObj = new Date(startDateStr + 'T00:00:00');
-    const endDateObj = new Date(startDateObj);
-    endDateObj.setDate(startDateObj.getDate() + duration - 1);
-    const end_date = endDateObj.toISOString().slice(0, 10);
+    const startDateRaw = habits[0].start_date;
+    const startDateStr = typeof startDateRaw === 'string'
+      ? startDateRaw.slice(0, 10)
+      : String(startDateRaw).slice(0, 10);
+
+    const [y, m, d] = startDateStr.split('-').map(Number);
+    const endDateObj = new Date(y, m - 1, d + duration - 1);
+    const endYear = endDateObj.getFullYear();
+    const endMonth = String(endDateObj.getMonth() + 1).padStart(2, '0');
+    const endDay = String(endDateObj.getDate()).padStart(2, '0');
+    const end_date = `${endYear}-${endMonth}-${endDay}`;
 
     console.log('Updating habit with:', {
       duration,

@@ -2,7 +2,8 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { CheckCircle, PlusCircle, Trash2, Edit2, TrendingUp, Flame, Calendar, X } from 'lucide-react';
 
 // API Configuration
-const API_BASE = `${process.env.REACT_APP_API_URL || 'http://localhost:5000'}/api`;
+const RAW_URL = (process.env.REACT_APP_API_URL || 'http://localhost:5000').replace(/\/$/, '');
+const API_BASE = `${RAW_URL}/api`;
 
 const apiRequest = async (endpoint, method = 'GET', body = null, token = null) => {
     const headers = {
@@ -33,11 +34,8 @@ const HabitTrackerDashboard = () => {
         goal_duration: 30,
         start_date: new Date().toISOString().slice(0, 10)
     });
-    const [weekDates, setWeekDates] = useState([]);
-    const [monthDates, setMonthDates] = useState([]);
     const [loading, setLoading] = useState(false);
     const [notification, setNotification] = useState({ show: false, message: '', type: '' });
-
     const token = useState(() => localStorage.getItem('token'))[0];
 
     const showNotification = (message, type = 'success') => {
@@ -45,61 +43,27 @@ const HabitTrackerDashboard = () => {
         setTimeout(() => setNotification({ show: false, message: '', type: '' }), 3000);
     };
 
-    const generateCalendarDates = () => {
-        const today = new Date();
-        const sunday = new Date(today);
-        sunday.setDate(today.getDate() - today.getDay());
+    const fetchHabits = useCallback(async () => {
+        try {
+            setLoading(true);
 
-        const week = [];
-        for (let i = 0; i < 7; i++) {
-            const date = new Date(sunday);
-            date.setDate(sunday.getDate() + i);
-            week.push({
-                date: date.toISOString().slice(0, 10),
-                day: date.toLocaleDateString('en-US', { weekday: 'short' }),
-                dayNum: date.getDate()
-            });
+            const data = await apiRequest('/habits', 'GET', null, token);
+            const habits = data.habits || [];
+
+            const habitsWithProgress = habits.map(habit => ({
+                ...habit,
+                goalProgress: habit.completion_pct ?? 0,
+            }));
+
+            setHabits(habitsWithProgress);
+        } catch (error) {
+            console.error('Failed to fetch habits:', error);
+            showNotification('Failed to load habits', 'error');
+            setHabits([]);
+        } finally {
+            setLoading(false);
         }
-        setWeekDates(week);
-
-        const year = today.getFullYear();
-        const month = today.getMonth();
-        const daysInMonth = new Date(year, month + 1, 0).getDate();
-
-        const monthArray = [];
-        for (let i = 1; i <= daysInMonth; i++) {
-            const date = new Date(year, month, i);
-            monthArray.push({
-                date: date.toISOString().slice(0, 10),
-                day: i
-            });
-        }
-        setMonthDates(monthArray);
-    };
-const fetchHabits = useCallback(async () => {
-    try {
-        setLoading(true);
-
-        const data = await apiRequest('/habits', 'GET', null, token);
-        const habits = data.habits || [];
-
-        // ✅ Use backend completion percentage for goal progress
-        const habitsWithProgress = habits.map(habit => ({
-            ...habit,
-            goalProgress: habit.completion_pct ?? 0, // use completion percentage from backend
-        }));
-
-        setHabits(habitsWithProgress);
-    } catch (error) {
-        console.error('Failed to fetch habits:', error);
-        showNotification('Failed to load habits', 'error');
-        setHabits([]);
-    } finally {
-        setLoading(false);
-    }
-}, [token]);
-
-
+    }, [token]);
 
     const fetchQuote = async () => {
         try {
@@ -119,7 +83,6 @@ const fetchHabits = useCallback(async () => {
     useEffect(() => {
         fetchHabits();
         fetchQuote();
-        generateCalendarDates();
     }, [fetchHabits]);
 
     const handleInputChange = (e) => {
@@ -178,10 +141,6 @@ const fetchHabits = useCallback(async () => {
             console.error('Failed to mark completion:', error);
             showNotification('Failed to mark completion', 'error');
         }
-    };
-
-    const isDateCompleted = (habit, date) => {
-        return habit.completedToday && date === new Date().toISOString().slice(0, 10);
     };
 
     const handleEdit = (habit) => {
