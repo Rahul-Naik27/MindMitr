@@ -7,24 +7,39 @@ const { authenticate } = require('../middleware/auth');
 router.use(authenticate);
 
 function normalizeDateString(date) {
-  if (typeof date === 'string') return date;
-  return new Date(date).toISOString().slice(0, 10);
+  if (!date) return '';
+  if (typeof date === 'string') {
+    return date.slice(0, 10);
+  }
+  if (date instanceof Date) {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  }
+  return String(date).slice(0, 10);
 }
 
 function calculateStreak(habit, completions) {
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = String(now.getMonth() + 1).padStart(2, '0');
+  const day = String(now.getDate()).padStart(2, '0');
+  const todayStr = `${year}-${month}-${day}`;
 
   const doneDates = new Set(
     completions.filter(c => c.status === 'done').map(c => normalizeDateString(c.date))
   );
 
   let streak = 0;
-  let currentDate = new Date(today);
+  let currentDate = new Date(now);
 
   if (habit.frequency === 'daily') {
     while (true) {
-      const dateStr = currentDate.toISOString().slice(0, 10);
+      const y = currentDate.getFullYear();
+      const m = String(currentDate.getMonth() + 1).padStart(2, '0');
+      const d = String(currentDate.getDate()).padStart(2, '0');
+      const dateStr = `${y}-${m}-${d}`;
       if (doneDates.has(dateStr)) {
         streak++;
         currentDate.setDate(currentDate.getDate() - 1);
@@ -33,10 +48,12 @@ function calculateStreak(habit, completions) {
   } else if (habit.frequency === 'weekly') {
     let weekStart = new Date(currentDate);
     weekStart.setDate(weekStart.getDate() - weekStart.getDay());
-    weekStart.setHours(0, 0, 0, 0);
 
     while (true) {
-      const weekStartStr = weekStart.toISOString().slice(0, 10);
+      const y = weekStart.getFullYear();
+      const m = String(weekStart.getMonth() + 1).padStart(2, '0');
+      const d = String(weekStart.getDate()).padStart(2, '0');
+      const weekStartStr = `${y}-${m}-${d}`;
       if (doneDates.has(weekStartStr)) {
         streak++;
         weekStart.setDate(weekStart.getDate() - 7);
@@ -44,10 +61,11 @@ function calculateStreak(habit, completions) {
     }
   } else if (habit.frequency === 'monthly') {
     let monthStart = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1);
-    monthStart.setHours(0, 0, 0, 0);
 
     while (true) {
-      const monthStr = monthStart.toISOString().slice(0, 10);
+      const y = monthStart.getFullYear();
+      const m = String(monthStart.getMonth() + 1).padStart(2, '0');
+      const monthStr = `${y}-${m}-01`;
       if (doneDates.has(monthStr)) {
         streak++;
         monthStart.setMonth(monthStart.getMonth() - 1);
@@ -64,73 +82,18 @@ function calculateCompletionPercentage(habit, completions) {
   return Math.min(100, Math.round(pct));
 }
 
-
-router.post('/add', async (req, res) => {
-  const { title, description, frequency, goal_duration, start_date } = req.body;
-  const userId = req.user.id;
-  if (!title) return res.status(400).json({ message: 'Title required' });
-
-  try {
-    const id = await createHabit(
-      userId,
-      title,
-      description || null,
-      frequency || 'daily',
-      goal_duration || 30,
-      start_date || new Date().toISOString().slice(0, 10)
-    );
-    res.status(201).json({ message: 'Habit added', id });
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ message: 'Server error' });
-  }
-});
-
-router.put('/update/:id', async (req, res) => {
-  const { title, description, frequency, goal_duration } = req.body;
-  const habitId = req.params.id;
-  const userId = req.user.id;
-  if (!title) return res.status(400).json({ message: 'Title required' });
-
-  try {
-    const affected = await updateHabit(
-      habitId,
-      userId,
-      title,
-      description || null,
-      frequency || 'daily',
-      goal_duration || 30
-    );
-    if (!affected) return res.status(404).json({ message: 'Habit not found or not yours' });
-    res.json({ message: 'Updated' });
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ message: 'Server error' });
-  }
-});
-
-router.delete('/delete/:id', async (req, res) => {
-  const habitId = req.params.id;
-  const userId = req.user.id;
-  try {
-    const affected = await deleteHabit(habitId, userId);
-    if (!affected) return res.status(404).json({ message: 'Habit not found or not yours' });
-    res.json({ message: 'Deleted' });
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ message: 'Server error' });
-  }
-});
-
+// ... existing routes ...
 
 router.get('/', async (req, res) => {
   const userId = req.user.id;
 
   try {
     const habits = await getHabitsForUser(userId);
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    const todayStr = today.toISOString().slice(0, 10);
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = String(now.getMonth() + 1).padStart(2, '0');
+    const day = String(now.getDate()).padStart(2, '0');
+    const todayStr = `${year}-${month}-${day}`;
 
     const habitsWithStats = await Promise.all(
       habits.map(async habit => {
@@ -166,35 +129,37 @@ router.post('/mark', async (req, res) => {
 
   try {
     const habits = await getHabitsForUser(userId);
-    const habit = habits.find(h => h.id === habitId);
+    const habit = habits.find(h => String(h.id) === String(habitId));
     if (!habit) return res.status(404).json({ message: 'Habit not found' });
 
-    const today = new Date();
-    const start = new Date(habit.start_date);
-    const end = new Date(habit.end_date);
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = String(now.getMonth() + 1).padStart(2, '0');
+    const day = String(now.getDate()).padStart(2, '0');
+    const todayStr = `${year}-${month}-${day}`;
 
-    if (today < start || today > end)
-      return res.status(400).json({ message: 'Outside goal period' });
+    const startStr = normalizeDateString(habit.start_date);
+    const endStr = normalizeDateString(habit.end_date);
 
-    const year = today.getFullYear();
-    const month = today.getMonth() + 1;
-    const day = today.getDate();
-    const todayStr = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-    let dateToStore;
-
-    if (habit.frequency === 'weekly') {
-      const sunday = new Date(today);
-      sunday.setDate(today.getDate() - today.getDay());
-      dateToStore = normalizeDateString(sunday);
-    } else if (habit.frequency === 'monthly') {
-      dateToStore = `${year}-${String(month).padStart(2, '0')}-01`;
-    } else {
-      dateToStore = todayStr;
+    if (todayStr < startStr || todayStr > endStr) {
+      return res.status(400).json({ message: `Outside goal period (${startStr} to ${endStr})` });
     }
 
-    await markCompletion(userId, habitId, dateToStore, 'done');
+    let dateToStore = todayStr;
+    if (habit.frequency === 'weekly') {
+      const sunday = new Date(now);
+      sunday.setDate(now.getDate() - now.getDay());
+      const sYear = sunday.getFullYear();
+      const sMonth = String(sunday.getMonth() + 1).padStart(2, '0');
+      const sDay = String(sunday.getDate()).padStart(2, '0');
+      dateToStore = `${sYear}-${sMonth}-${sDay}`;
+    } else if (habit.frequency === 'monthly') {
+      dateToStore = `${year}-${month}-01`;
+    }
 
-    const completions = await getUserHabitCompletions(userId, habitId);
+    await markCompletion(userId, habit.id, dateToStore, 'done');
+
+    const completions = await getUserHabitCompletions(userId, habit.id);
     const normalized = completions.map(c => ({ ...c, date: normalizeDateString(c.date) }));
 
     const streak = calculateStreak(habit, normalized);
@@ -210,8 +175,8 @@ router.post('/mark', async (req, res) => {
       }
     });
   } catch (err) {
-    console.error(err);
-    res.status(500).json({ message: 'Failed to mark habit' });
+    console.error('Error marking habit:', err);
+    res.status(500).json({ message: err.message || 'Failed to mark habit' });
   }
 });
 
