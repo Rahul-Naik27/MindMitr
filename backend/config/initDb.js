@@ -5,6 +5,7 @@ async function initDb() {
   try {
     console.log('Initializing database tables...');
 
+    // 1. Users table
     await conn.execute(`
       CREATE TABLE IF NOT EXISTS users (
         id INT AUTO_INCREMENT PRIMARY KEY,
@@ -16,7 +17,7 @@ async function initDb() {
       )
     `);
 
-    // Fix: if old table was created with 'username' column, rename it to 'name'
+    // Migration: rename 'username' column to 'name' if it exists
     const [columns] = await conn.execute(`
       SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS
       WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'users' AND COLUMN_NAME = 'username'
@@ -26,6 +27,7 @@ async function initDb() {
       console.log('✅ Migrated: renamed column username → name in users table.');
     }
 
+    // 2. Habits table
     await conn.execute(`
       CREATE TABLE IF NOT EXISTS habits (
         id INT AUTO_INCREMENT PRIMARY KEY,
@@ -41,12 +43,16 @@ async function initDb() {
       )
     `);
 
+    // 3. Habit completions table (correct name & schema matching completionModel.js)
     await conn.execute(`
-      CREATE TABLE IF NOT EXISTS completions (
+      CREATE TABLE IF NOT EXISTS habit_completions (
         id INT AUTO_INCREMENT PRIMARY KEY,
         habit_id INT NOT NULL,
         user_id INT NOT NULL,
-        completed_date DATE NOT NULL,
+        date DATE NOT NULL,
+        status VARCHAR(20) DEFAULT 'done',
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        UNIQUE KEY unique_completion (habit_id, user_id, date),
         FOREIGN KEY (habit_id) REFERENCES habits(id) ON DELETE CASCADE,
         FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
       )
