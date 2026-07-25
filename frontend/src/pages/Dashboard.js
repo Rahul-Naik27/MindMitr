@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { CheckCircle, PlusCircle, Trash2, Edit2, TrendingUp, Flame, Calendar, X } from 'lucide-react';
 
 // API Configuration
-const API_BASE = 'http://localhost:5000/api';
+const API_BASE = `${process.env.REACT_APP_API_URL || 'http://localhost:5000'}/api`;
 
 const apiRequest = async (endpoint, method = 'GET', body = null, token = null) => {
     const headers = {
