@@ -125,7 +125,7 @@ npm run dev
 npm start
 ```
 
-The backend will be live at: `[http://localhost:5000](https://mindmitr-3vy4.onrender.com)`
+The backend will be live at: `https://mindmitr-3vy4.onrender.com/`
 
 ---
 
