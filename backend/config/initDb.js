@@ -8,13 +8,23 @@ async function initDb() {
     await conn.execute(`
       CREATE TABLE IF NOT EXISTS users (
         id INT AUTO_INCREMENT PRIMARY KEY,
-        username VARCHAR(100) NOT NULL,
+        name VARCHAR(100) NOT NULL,
         email VARCHAR(255) NOT NULL UNIQUE,
         password VARCHAR(255) NOT NULL,
         role VARCHAR(20) DEFAULT 'user',
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       )
     `);
+
+    // Fix: if old table was created with 'username' column, rename it to 'name'
+    const [columns] = await conn.execute(`
+      SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS
+      WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'users' AND COLUMN_NAME = 'username'
+    `);
+    if (columns.length > 0) {
+      await conn.execute(`ALTER TABLE users CHANGE username name VARCHAR(100) NOT NULL`);
+      console.log('✅ Migrated: renamed column username → name in users table.');
+    }
 
     await conn.execute(`
       CREATE TABLE IF NOT EXISTS habits (
