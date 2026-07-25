@@ -137,7 +137,7 @@ npm install
 npm start
 ```
 
-The frontend will be live at: `http://localhost:3000`
+The frontend will be live at: `https://mind-mitr-xi.vercel.app/`
 
 ---
 
